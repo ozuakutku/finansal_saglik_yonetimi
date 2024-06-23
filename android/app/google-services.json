@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96835766937",
+    "project_id": "fibabanka-4813b",
+    "storage_bucket": "fibabanka-4813b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96835766937:android:0fe9feb2896bc846cbc608",
+        "android_client_info": {
+          "package_name": "com.example.finanasal_saglik_raporu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdJRUyRAOBam3zW5a-uUGBTc7BjTacgK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
