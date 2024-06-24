@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:finanasal_saglik_raporu/models/expense.dart';
 
 class CarbonFootprintPage extends StatelessWidget {
@@ -65,13 +66,29 @@ class CarbonFootprintPage extends StatelessWidget {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 10),
-          LinearProgressIndicator(
-            value: footprint / 1000, // Assume 1000 kg as the max for normalization
-            backgroundColor: Colors.grey[300],
-            color: color,
-            minHeight: 20,
+          Container(
+            height: 150,
+            width: 150,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                SvgPicture.asset(
+                  'assets/images/footprint.svg',
+                  color: Colors.grey[300],
+                ),
+                ClipRect(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    heightFactor: footprint / 3000, // Normalizasyon faktörü
+                    child: SvgPicture.asset(
+                      'assets/images/footprint.svg',
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          SizedBox(height: 20),
         ],
       ),
     );

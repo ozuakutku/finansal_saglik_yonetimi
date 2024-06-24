@@ -14,7 +14,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
     await FirebaseFirestore.instance.collection('expenses').add({
       'store': store,
       'amount': amount,
-      'category': 'Diğer', // Kategori varsayılan olarak Diğer
+      'category': 'Diğer', // Kategori daha sonra AI ile belirlenecek
       'date': DateTime.now().toIso8601String(),
     });
   }

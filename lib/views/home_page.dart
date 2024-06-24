@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:finanasal_saglik_raporu/widgets/tab_bar_section.dart';
-import 'package:finanasal_saglik_raporu/widgets/account_section.dart';
-import 'package:finanasal_saglik_raporu/widgets/financial_market_section.dart';
-import 'package:finanasal_saglik_raporu/widgets/action_buttons_section.dart';
+import 'package:finanasal_saglik_raporu/views/home_screen.dart';
+import 'package:finanasal_saglik_raporu/views/add_expense_page.dart';
 import 'package:finanasal_saglik_raporu/services/firestore_service.dart';
 import 'package:finanasal_saglik_raporu/models/expense.dart';
-import 'package:finanasal_saglik_raporu/views/add_expense_page.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finanasal_saglik_raporu/views/carbon_footprint_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -18,6 +17,8 @@ class _HomePageState extends State<HomePage> {
   List<Widget> _pages = [HomeScreen(), AddExpensePage(), Placeholder(), Placeholder()];
 
   List<Expense> expenses = [];
+  double totalLastMonth = 0;
+  double totalThisMonth = 0;
 
   @override
   void initState() {
@@ -29,8 +30,23 @@ class _HomePageState extends State<HomePage> {
     final data = await FirestoreService().getExpenses();
     setState(() {
       expenses = data;
+      calculateTotals();
       showMostCarbonFootprintCategory();
     });
+  }
+
+  void calculateTotals() {
+    final DateTime now = DateTime.now();
+    final DateTime lastMonth = DateTime(now.year, now.month - 1, 1);
+    final DateTime thisMonth = DateTime(now.year, now.month, 1);
+
+    totalLastMonth = expenses
+        .where((expense) => DateTime.parse(expense.date).isAfter(lastMonth) && DateTime.parse(expense.date).isBefore(thisMonth))
+        .fold(0, (sum, item) => sum + item.amount);
+
+    totalThisMonth = expenses
+        .where((expense) => DateTime.parse(expense.date).isAfter(thisMonth))
+        .fold(0, (sum, item) => sum + item.amount);
   }
 
   void showMostCarbonFootprintCategory() {
@@ -42,18 +58,30 @@ class _HomePageState extends State<HomePage> {
       }
       final mostImpactfulCategory = categoryTotals.entries.reduce((a, b) => a.value > b.value ? a : b).key;
       final mostImpactfulAmount = categoryTotals[mostImpactfulCategory]!;
+      final percentChange = ((totalThisMonth - totalLastMonth) / totalLastMonth * 100).toStringAsFixed(1);
+
+      String changeText;
+      if (double.tryParse(percentChange)! > 0) {
+        changeText = "arttı";
+      } else if (double.tryParse(percentChange)! < 0) {
+        changeText = "azaldı";
+      } else {
+        changeText = "değişmedi";
+      }
 
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Karbon Ayakizi Uyarısı'),
+            title: Text('Harcama Verileri'),
+            backgroundColor: Colors.white,
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/images/sad_rabbit.png', height: 100), // Üzgün tavşan resmi
                 SizedBox(height: 10),
-                Text('Bu ay en çok $mostImpactfulCategory kategorisinde karbon ayak izi oluşturdunuz: ${mostImpactfulAmount.toStringAsFixed(2)} kg CO2e.'),
+                Text('Bu ay $mostImpactfulAmount TL ile en çok harcamayı $mostImpactfulCategory kategorisinde yaptınız.'),
+                Text('Tüm harcamalarınız geçen aya göre %$percentChange $changeText.'),
+                Image.asset('assets/images/rabbit.png', height: 200),
               ],
             ),
             actions: [
@@ -62,6 +90,20 @@ class _HomePageState extends State<HomePage> {
                   Navigator.of(context).pop();
                 },
                 child: Text('Tamam'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CarbonFootprintPage(
+                        userFootprint: calculateCarbonFootprint(),
+                        expenses: expenses,
+                      ),
+                    ),
+                  );
+                },
+                child: Text('Karbon Ayakizi Sayfasına Git', style: TextStyle(color: Colors.blue)),
               ),
             ],
           );
@@ -89,6 +131,14 @@ class _HomePageState extends State<HomePage> {
       default:
         return 0.1;
     }
+  }
+
+  double calculateCarbonFootprint() {
+    double total = 0;
+    for (var expense in expenses) {
+      total += expense.amount * getFactorForCategory(expense.category);
+    }
+    return total;
   }
 
   @override
@@ -147,31 +197,6 @@ class _HomePageState extends State<HomePage> {
           unselectedItemColor: Colors.grey,
           showUnselectedLabels: true, // Tüm öğelerde yazı göster
         ),
-      ),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.blue[800], // Arka plan mavi
-      child: Column(
-        children: <Widget>[
-          TabBarSection(),
-          Container(
-            margin: EdgeInsets.all(16.0),
-            padding: EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.white, // İç kısmın beyaz olması
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: AccountSection(),
-          ),
-          ActionButtonsSection(), // ActionButtonsSection widget'ı eklendi
-          Expanded(child: FinancialMarketSection()), // Expanded widget ile FinancialMarketSection genişletildi
-        ],
       ),
     );
   }

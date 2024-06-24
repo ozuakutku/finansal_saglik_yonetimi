@@ -15,7 +15,8 @@ class ExpenseReportPage extends StatefulWidget {
 class _ExpenseReportPageState extends State<ExpenseReportPage> {
   List<Expense> expenses = [];
   List<Expense> filteredExpenses = [];
-  String selectedMonth = '06'; // Default to June
+  String selectedMonth = '06';
+  String selectedYear = DateTime.now().year.toString(); // Default to current year
 
   @override
   void initState() {
@@ -27,15 +28,15 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
     final data = await FirestoreService().getExpenses();
     setState(() {
       expenses = data;
-      filterExpensesByMonth(selectedMonth);
+      filterExpensesByMonthYear(selectedMonth, selectedYear);
     });
   }
 
-  void filterExpensesByMonth(String month) {
+  void filterExpensesByMonthYear(String month, String year) {
     setState(() {
       filteredExpenses = expenses.where((expense) {
         final date = DateTime.parse(expense.date);
-        return date.month.toString().padLeft(2, '0') == month;
+        return date.month.toString().padLeft(2, '0') == month && date.year.toString() == year;
       }).toList();
     });
   }
@@ -61,40 +62,73 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            ExpenseDropdown(
-              selectedMonth: selectedMonth,
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    selectedMonth = value;
-                    filterExpensesByMonth(value);
-                  });
-                }
-              },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ExpenseDropdown(
+                  selectedMonth: selectedMonth,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedMonth = value;
+                        filterExpensesByMonthYear(selectedMonth, selectedYear);
+                      });
+                    }
+                  },
+                  availableMonths: [
+                    '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'
+                  ],
+                ),
+                SizedBox(width: 16),
+                YearDropdown(
+                  selectedYear: selectedYear,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedYear = value;
+                        filterExpensesByMonthYear(selectedMonth, selectedYear);
+                      });
+                    }
+                  },
+                  availableYears: [
+                    for (var year = DateTime.now().year - 10; year <= DateTime.now().year; year++) year.toString()
+                  ],
+                ),
+              ],
             ),
-            PieChartSection(sections: showingSections()),
-            ExpenseSummary(
-              totalExpenses: totalExpenses,
-              categoryTotals: categoryTotals,
-              categoryColors: categoryColors,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CarbonFootprintPage(
-                        userFootprint: calculateCarbonFootprint(),
-                        expenses: filteredExpenses,
-                      ),
-                    ),
-                  );
-                },
-                child: Text('Karbon Ayakizi Hesapla'),
+            if (filteredExpenses.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Bu aya ait veriniz bulunmamaktadır',
+                  style: TextStyle(fontSize: 16, color: Colors.red),
+                ),
+              )
+            else ...[
+              PieChartSection(sections: showingSections()),
+              ExpenseSummary(
+                totalExpenses: totalExpenses,
+                categoryTotals: categoryTotals,
+                categoryColors: categoryColors,
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CarbonFootprintPage(
+                          userFootprint: calculateCarbonFootprint(),
+                          expenses: filteredExpenses,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text('Karbon Ayakizi Hesapla'),
+                ),
+              ),
+            ]
           ],
         ),
       ),
@@ -197,4 +231,30 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
     'Market': Colors.purple,
     'Yeme-İçme': Colors.pink,
   };
+}
+
+class YearDropdown extends StatelessWidget {
+  final String selectedYear;
+  final ValueChanged<String?> onChanged;
+  final List<String> availableYears;
+
+  YearDropdown({
+    required this.selectedYear,
+    required this.onChanged,
+    required this.availableYears,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButton<String>(
+      value: selectedYear,
+      onChanged: onChanged,
+      items: availableYears.map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+    );
+  }
 }
